@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: aguaflow
+      POSTGRES_PASSWORD: aguaflow_secret
+      POSTGRES_DB: aguaflow_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - aguaflow_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aguaflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    ports:
+      - "3002:3002"
+    environment:
+      DATABASE_URL: postgresql://aguaflow:aguaflow_secret@postgres:5432/aguaflow_db
+      PORT: 3002
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+volumes:
+  aguaflow_postgres_data:
